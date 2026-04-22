@@ -149,27 +149,45 @@ app.get('/admin', (req, res) => {
 // --- 3. PAGE RÉTRO (DIAPORAMA) ---
 app.get('/retro', (req, res) => {
     res.send(`
-        <body style="background:black; color:white; margin:0; overflow:hidden; font-family:sans-serif;">
+        <body style="background:black; color:white; margin:0; overflow:hidden; font-family:sans-serif; height: 100vh; width: 100vw;">
             <div id="container" style="height:100vh; width:100vw; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative;">
+                
+                <button onclick="toggleFS()" style="position:absolute; top:20px; right:20px; z-index:100; background:rgba(255,255,255,0.2); color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">🖥️ PLEIN ÉCRAN</button>
+
                 <div id="top-bar" style="position:absolute; top:20px; left:30px; font-size:24px; color:#aaa; font-weight:bold;">📸 Dk'anim</div>
-                <h1 id="msg">En attente des premières photos...</h1>
+                
+                <h1 id="msg" style="text-align:center; padding: 20px;">En attente des premières photos...</h1>
+                
                 <img id="img" style="max-width:100%; max-height:100vh; object-fit:contain; display:none;">
+                
                 <div id="tag" style="position:absolute; bottom:50px; background:rgba(0,0,0,0.7); padding:10px 30px; border-radius:30px; font-size:30px; display:none;"></div>
-                <div style="position:absolute; bottom:15px; right:15px; background:white; padding:10px; border-radius:10px; text-align:center;">
-                    <img id="qr" style="width:100px; height:100px;">
+                
+                <div style="position:absolute; bottom:15px; right:15px; background:white; padding:10px; border-radius:10px; text-align:center; box-shadow: 0 0 20px rgba(255,255,255,0.2);">
+                    <img id="qr" style="width:110px; height:110px;">
                     <p style="color:black; margin:5px 0 0; font-size:12px; font-weight:bold;">SCANNEZ & ENVOYEZ !</p>
                 </div>
             </div>
+
             <script src="/socket.io/socket.io.js"></script>
             <script>
                 document.getElementById('qr').src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(window.location.origin);
                 const socket = io(); let playlist = []; let cur = 0; let timer = null;
                 const i = document.getElementById('img'); const t = document.getElementById('tag'); const m = document.getElementById('msg');
+                
                 socket.on('init_photos', (ps) => { playlist = ps; if(ps.length > 0 && !timer) start(); });
                 socket.on('show_photo', (p) => { playlist.push(p); if(!timer) start(); });
+                
                 function displayPhoto(p) { m.style.display = 'none'; i.style.display = 'block'; t.style.display = 'block'; i.src = p.url; t.innerText = "📸 " + p.user; }
                 function showNext() { if(playlist.length === 0) return; cur = (cur + 1) % playlist.length; displayPhoto(playlist[cur]); }
                 function start() { displayPhoto(playlist[cur]); timer = setInterval(showNext, 5000); }
+
+                function toggleFS() {
+                    if (!document.fullscreenElement) {
+                        document.documentElement.requestFullscreen();
+                    } else if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
             </script>
         </body>
     `);
