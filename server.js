@@ -10,7 +10,6 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// --- CONFIGURATION ---
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = "123"; 
 
@@ -48,7 +47,7 @@ app.get('/', (req, res) => {
                         <span id="txt_album">🖼️ DEPUIS L'ALBUM</span>
                     </label>
                 </div>
-                <button id="sendBtn" onclick="send()" style="width:100%; padding:20px; background:#28a745; color:white; border:none; border-radius:12px; margin-top:30px; cursor:pointer; font-weight:bold; font-size:18px;">ENVOYER</button>
+                <button onclick="send()" style="width:100%; padding:20px; background:#28a745; color:white; border:none; border-radius:12px; margin-top:30px; cursor:pointer; font-weight:bold; font-size:18px;">ENVOYER</button>
             </div>
             <script src="/socket.io/socket.io.js"></script>
             <script>
@@ -102,16 +101,13 @@ app.get('/admin', (req, res) => {
                     document.getElementById('btn-'+t).style.background = (t==='pending'?'#007bff':(t==='approved'?'#28a745':'#dc3545'));
                     document.getElementById('btn-'+t).style.color = 'white';
                 }
-
                 socket.on('init_admin', d => {
                     document.getElementById('nb-oui').innerText = d.approved.length;
                     document.getElementById('nb-non').innerText = d.rejected.length;
                     d.approved.forEach(p => addThumb(p, 'list-approved'));
                     d.rejected.forEach(p => addThumb(p, 'list-rejected'));
                 });
-
                 socket.on('update_users', d => { document.getElementById('count').innerText = "👤 " + d.total; });
-
                 socket.on('new_photo_pending', d => {
                     const div = document.createElement('div');
                     div.style = "background:white; padding:8px; border-radius:10px; text-align:center; width:155px; box-shadow:0 2px 5px rgba(0,0,0,0.1);";
@@ -124,14 +120,12 @@ app.get('/admin', (req, res) => {
                         </div>\`;
                     document.getElementById('list-pending').prepend(div);
                 });
-
                 function addThumb(p, targetId) {
                     const div = document.createElement('div');
                     div.style = "background:white; padding:5px; border-radius:8px; text-align:center; width:90px;";
                     div.innerHTML = \`<img src="\${p.url}" style="width:100%; height:70px; object-fit:cover; border-radius:5px;"><p style="font-size:9px; margin:2px 0;">\${p.user}</p>\`;
                     document.getElementById(targetId).prepend(div);
                 }
-
                 async function decide(btn, url, user, action) {
                     const pass = document.getElementById('pass').value;
                     const res = await fetch('/'+action, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url, user, pass}) });
@@ -150,20 +144,19 @@ app.get('/admin', (req, res) => {
 app.get('/retro', (req, res) => {
     res.send(`
         <body style="background:black; color:white; margin:0; overflow:hidden; font-family:sans-serif; height: 100vh; width: 100vw;">
+            
             <div id="container" style="height:100vh; width:100vw; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative;">
                 
-                <button onclick="toggleFS()" style="position:absolute; top:20px; right:20px; z-index:100; background:rgba(255,255,255,0.2); color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">🖥️ PLEIN ÉCRAN</button>
+                <button id="fs-btn" onclick="toggleFS()" style="position:absolute; top:20px; right:20px; z-index:9999; background:#ff9800; color:black; border:none; padding:15px 20px; border-radius:10px; cursor:pointer; font-weight:bold; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">🖥️ PLEIN ÉCRAN</button>
 
-                <div id="top-bar" style="position:absolute; top:20px; left:30px; font-size:24px; color:#aaa; font-weight:bold;">📸 Dk'anim</div>
+                <div style="position:absolute; top:20px; left:30px; font-size:24px; color:#aaa; font-weight:bold;">📸 Dk'anim</div>
                 
-                <h1 id="msg" style="text-align:center; padding: 20px;">En attente des premières photos...</h1>
-                
+                <h1 id="msg">En attente de photos...</h1>
                 <img id="img" style="max-width:100%; max-height:100vh; object-fit:contain; display:none;">
-                
                 <div id="tag" style="position:absolute; bottom:50px; background:rgba(0,0,0,0.7); padding:10px 30px; border-radius:30px; font-size:30px; display:none;"></div>
                 
-                <div style="position:absolute; bottom:15px; right:15px; background:white; padding:10px; border-radius:10px; text-align:center; box-shadow: 0 0 20px rgba(255,255,255,0.2);">
-                    <img id="qr" style="width:110px; height:110px;">
+                <div style="position:absolute; bottom:15px; right:15px; background:white; padding:10px; border-radius:10px; text-align:center;">
+                    <img id="qr" style="width:100px; height:100px;">
                     <p style="color:black; margin:5px 0 0; font-size:12px; font-weight:bold;">SCANNEZ & ENVOYEZ !</p>
                 </div>
             </div>
@@ -179,13 +172,19 @@ app.get('/retro', (req, res) => {
                 
                 function displayPhoto(p) { m.style.display = 'none'; i.style.display = 'block'; t.style.display = 'block'; i.src = p.url; t.innerText = "📸 " + p.user; }
                 function showNext() { if(playlist.length === 0) return; cur = (cur + 1) % playlist.length; displayPhoto(playlist[cur]); }
-                function start() { displayPhoto(playlist[cur]); timer = setInterval(showNext, 5000); }
+                function start() { if(playlist.length > 0) { displayPhoto(playlist[cur]); timer = setInterval(showNext, 5000); } }
 
                 function toggleFS() {
-                    if (!document.fullscreenElement) {
-                        document.documentElement.requestFullscreen();
-                    } else if (document.exitFullscreen) {
-                        document.exitFullscreen();
+                    const doc = window.document;
+                    const docEl = doc.documentElement;
+                    const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+                    const cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+                    if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                        requestFullScreen.call(docEl);
+                        document.getElementById('fs-btn').style.display = 'none'; // Le bouton disparaît en plein écran
+                    } else {
+                        cancelFullScreen.call(doc);
                     }
                 }
             </script>
@@ -235,4 +234,4 @@ app.get('/download-all', (req, res) => {
     archive.finalize();
 });
 
-server.listen(PORT, () => console.log(`🚀 Dk'anim lancé sur le port: ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Dk'anim en ligne !`));
